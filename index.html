@@ -1,357 +1,378 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Valentine?</title>
-  <style>
-    :root {
-      --card-bg: rgba(255, 255, 255, 0.86);
-      --shadow: 0 18px 60px rgba(0,0,0,.18);
-    }
-
-    body {
-      margin: 0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      min-height: 100vh;
-      overflow: hidden;
-      background:
-        linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.25)),
-        url("background.jpg") center/cover no-repeat fixed;
-      display: grid;
-      place-items: center;
-      padding: 24px;
-    }
-
-    .wrap {
-      width: min(720px, 94vw);
-      display: grid;
-      gap: 16px;
-      justify-items: center;
-    }
-
-    .title {
-      color: white;
-      text-shadow: 0 8px 25px rgba(0,0,0,.45);
-      font-size: clamp(2rem, 5vw, 3rem);
-      font-weight: 800;
-      text-align: center;
-      margin: 0;
-    }
-
-    .card {
-      width: min(560px, 92vw);
-      background: var(--card-bg);
-      border-radius: 24px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(8px);
-      padding: 22px;
-      position: relative;
-    }
-
-    .sub {
-      margin: 0 0 14px;
-      opacity: .85;
-      text-align: center;
-    }
-
-    .arena {
-      position: relative;
-      height: 170px;
-      border-radius: 18px;
-      background: rgba(255,255,255,.55);
-      border: 1px solid rgba(0,0,0,.06);
-      display: grid;
-      place-items: center;
-      overflow: hidden;
-    }
-
-    button {
-      border: 0;
-      padding: 14px 22px;
-      border-radius: 999px;
-      font-size: 1.05rem;
-      cursor: pointer;
-      user-select: none;
-      box-shadow: 0 10px 20px rgba(0,0,0,.12);
-      transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
-    }
-    button:active { transform: scale(.98); }
-
-    #yesBtn { background: #22c55e; color: white; }
-    #yesBtn:hover { box-shadow: 0 14px 26px rgba(34,197,94,.35); }
-
-    #noBtn {
-      position: absolute;
-      background: #ef4444;
-      color: white;
-      transition: left .15s ease, top .15s ease;
-    }
-
-    .modalBackdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,.45);
-      display: none;
-      place-items: center;
-      z-index: 50;
-      padding: 18px;
-    }
-    .modal {
-      width: min(520px, 92vw);
-      background: rgba(255,255,255,.92);
-      border-radius: 22px;
-      box-shadow: var(--shadow);
-      padding: 18px;
-      backdrop-filter: blur(10px);
-    }
-    .modal h2 { margin: 0 0 6px; font-size: 1.4rem; }
-    .modal p { margin: 0 0 14px; opacity: .85; }
-    .modalBtns {
-      display: flex;
-      gap: 10px;
-      justify-content: flex-end;
-      flex-wrap: wrap;
-    }
-    .ghost {
-      background: rgba(0,0,0,.07);
-      color: #111;
-    }
-
-    .celebrate {
-      position: fixed;
-      inset: 0;
-      display: none;
-      z-index: 80;
-      background: rgba(0,0,0,.35);
-    }
-    .celebrateText {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      color: white;
-      text-shadow: 0 10px 30px rgba(0,0,0,.55);
-      pointer-events: none;
-      padding: 24px;
-    }
-    .celebrateText .big {
-      font-size: clamp(2.3rem, 6vw, 4rem);
-      font-weight: 900;
-    }
-    .celebrateText .small {
-      margin-top: 10px;
-      font-size: clamp(1.1rem, 3vw, 1.6rem);
-      font-weight: 700;
-      opacity: .95;
-    }
-
-    canvas#fx {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-    }
-
-    .hint {
-      margin-top: 10px;
-      font-size: .92rem;
-      opacity: .7;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
-  <div class="wrap">
-    <h1 class="title" id="mainTitle">Shall you be my valentine, Tanvi? 💘</h1>
-
-    <div class="card">
-      <p class="sub">Choose wisely</p>
-
-      <div class="arena" id="arena">
-        <button id="yesBtn">Yes</button>
-        <button id="noBtn">No</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modalBackdrop" id="modalBackdrop">
-    <div class="modal">
-      <h2>Waittt</h2>
-      <p id="modalMsg">After all this time, please reconsider</p>
-      <div class="modalBtns">
-        <button class="ghost" id="modalNopeBtn">No</button>
-        <button id="modalYesBtn">Yes</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="celebrate" id="celebrate">
-    <canvas id="fx"></canvas>
-    <div class="celebrateText">
-      <div>
-        <div class="big">LETS GOOOO 🎆</div>
-        <div class="small">Also let's go Pats</div>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const BACKGROUND_IMAGE_URL = "background.jpg";
-    const TITLE_TEXT = "Will you be my Valentine, Tanvi? 💘";
-
-    const NO_POPUP_LINES = [
-      "Are you sure? 🥺",
-      "Like… really sure?? 😳",
-      "Tanvi pls 😭",
-      "Ok but what if I get you flowers 💐",
-      "Last chance… 😔"
-    ];
-
-    const NO_TELEPORT_EVERY_MS = 2000;
-
-    document.body.style.background =
-      `linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.25)), url("${BACKGROUND_IMAGE_URL}") center/cover no-repeat fixed`;
-    document.getElementById("mainTitle").textContent = TITLE_TEXT;
-
-    const arena = document.getElementById("arena");
-    const noBtn = document.getElementById("noBtn");
-    const yesBtn = document.getElementById("yesBtn");
-    const modalBackdrop = document.getElementById("modalBackdrop");
-    const modalMsg = document.getElementById("modalMsg");
-    const modalNopeBtn = document.getElementById("modalNopeBtn");
-    const modalYesBtn = document.getElementById("modalYesBtn");
-    const celebrate = document.getElementById("celebrate");
-    const canvas = document.getElementById("fx");
-    const ctx = canvas.getContext("2d");
-
-    let popupIndex = 0;
-    let arenaRect = null;
-
-    function refreshRects() {
-      arenaRect = arena.getBoundingClientRect();
-      canvas.width = Math.floor(window.innerWidth * devicePixelRatio);
-      canvas.height = Math.floor(window.innerHeight * devicePixelRatio);
-      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
-    }
-
-    function moveNoButtonRandom() {
-      refreshRects();
-      const btnRect = noBtn.getBoundingClientRect();
-      const btnW = btnRect.width;
-      const btnH = btnRect.height;
-
-      const x = Math.random() * (arenaRect.width - btnW - 20) + 10;
-      const y = Math.random() * (arenaRect.height - btnH - 20) + 10;
-
-      noBtn.style.left = `${x}px`;
-      noBtn.style.top = `${y}px`;
-    }
-
-    // Slippery behavior: run away when cursor is close
-    arena.addEventListener("mousemove", (e) => {
-      const btn = noBtn.getBoundingClientRect();
-      const dist = Math.hypot(
-        (btn.left + btn.width/2) - e.clientX,
-        (btn.top + btn.height/2) - e.clientY
-      );
-      if (dist < 130) moveNoButtonRandom();
-    });
-
-    noBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      const msg = NO_POPUP_LINES[popupIndex % NO_POPUP_LINES.length];
-      popupIndex++;
-      modalMsg.textContent = msg;
-      modalBackdrop.style.display = "grid";
-    });
-
-    modalNopeBtn.addEventListener("click", () => {
-      modalBackdrop.style.display = "none";
-      moveNoButtonRandom();
-    });
-
-    modalYesBtn.addEventListener("click", () => {
-      modalBackdrop.style.display = "none";
-      doYesCelebration();
-    });
-
-    yesBtn.addEventListener("click", () => doYesCelebration());
-
-    setInterval(moveNoButtonRandom, NO_TELEPORT_EVERY_MS);
-
-    // Fireworks particles
-    const particles = [];
-    let animating = false;
-    let stopAt = 0;
-
-    function burst() {
-      const count = 90;
-      const cx = Math.random() * window.innerWidth * 0.8 + window.innerWidth * 0.1;
-      const cy = Math.random() * window.innerHeight * 0.5 + window.innerHeight * 0.15;
-
-      for (let i = 0; i < count; i++) {
-        const a = Math.random() * Math.PI * 2;
-        const s = Math.random() * 6 + 2;
-        particles.push({
-          x: cx, y: cy,
-          vx: Math.cos(a) * s,
-          vy: Math.sin(a) * s,
-          life: Math.random() * 50 + 40,
-          r: Math.random() * 3 + 1.5
-        });
-      }
-    }
-
-    function step() {
-      if (!animating) return;
-      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-
-      if (Date.now() < stopAt && Math.random() < 0.18) burst();
-
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.06;
-        p.vx *= 0.99;
-        p.vy *= 0.99;
-        p.life--;
-
-        ctx.globalAlpha = Math.max(p.life / 80, 0);
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = "white";
-        ctx.fill();
-
-        if (p.life <= 0) particles.splice(i, 1);
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Valentine?</title>
+    <style>
+      :root {
+        --card-bg: rgba(255, 255, 255, 0.72);
+        --shadow: 0 18px 60px rgba(0, 0, 0, 0.18);
       }
 
-      ctx.globalAlpha = 1;
+      body {
+        margin: 0;
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          Roboto,
+          Arial,
+          sans-serif;
+        min-height: 100vh;
+        overflow: hidden;
+        background:
+          linear-gradient(rgba(0, 0, 0, 0.25), rgba(0, 0, 0, 0.25)),
+          url("background.jpg") center/cover no-repeat fixed;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
 
-      if (Date.now() >= stopAt && particles.length === 0) {
-        animating = false;
-      } else {
+      .wrap {
+        width: min(720px, 94vw);
+        display: grid;
+        gap: 16px;
+        justify-items: center;
+      }
+
+      .title {
+        color: white;
+        text-shadow: 0 8px 25px rgba(0, 0, 0, 0.45);
+        font-size: clamp(2rem, 5vw, 3rem);
+        font-weight: 800;
+        text-align: center;
+        margin: 0;
+      }
+
+      .card {
+        width: min(560px, 92vw);
+        background: var(--card-bg);
+        border-radius: 24px;
+        box-shadow: var(--shadow);
+        backdrop-filter: blur(8px);
+        padding: 22px;
+        position: relative;
+      }
+
+      .sub {
+        margin: 0 0 14px;
+        opacity: 0.85;
+        text-align: center;
+      }
+
+      .arena {
+        position: relative;
+        height: 170px;
+        border-radius: 18px;
+        background: rgba(255, 255, 255, 0.18);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        backdrop-filter: blur(8px);
+      }
+
+      button {
+        border: 0;
+        padding: 14px 22px;
+        border-radius: 999px;
+        font-size: 1.05rem;
+        cursor: pointer;
+        user-select: none;
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+        transition:
+          transform 0.12s ease,
+          box-shadow 0.12s ease,
+          filter 0.12s ease;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+
+      #yesBtn {
+        background: #22c55e;
+        color: white;
+      }
+      #yesBtn:hover {
+        box-shadow: 0 14px 26px rgba(34, 197, 94, 0.35);
+      }
+
+      #noBtn {
+        position: absolute;
+        background: #ef4444;
+        color: white;
+        transition:
+          left 0.15s ease,
+          top 0.15s ease;
+      }
+
+      .modalBackdrop {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        display: none;
+        place-items: center;
+        z-index: 50;
+        padding: 18px;
+      }
+      .modal {
+        width: min(520px, 92vw);
+        background: rgba(255, 255, 255, 0.92);
+        border-radius: 22px;
+        box-shadow: var(--shadow);
+        padding: 18px;
+        backdrop-filter: blur(10px);
+      }
+      .modal h2 {
+        margin: 0 0 6px;
+        font-size: 1.4rem;
+      }
+      .modal p {
+        margin: 0 0 14px;
+        opacity: 0.85;
+      }
+      .modalBtns {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+      .ghost {
+        background: rgba(0, 0, 0, 0.07);
+        color: #111;
+      }
+
+      .celebrate {
+        position: fixed;
+        inset: 0;
+        display: none;
+        z-index: 80;
+        background: rgba(0, 0, 0, 0.35);
+      }
+      .celebrateText {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        color: white;
+        text-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+        pointer-events: none;
+        padding: 24px;
+      }
+      .celebrateText .big {
+        font-size: clamp(2.3rem, 6vw, 4rem);
+        font-weight: 900;
+      }
+      .celebrateText .small {
+        margin-top: 10px;
+        font-size: clamp(1.1rem, 3vw, 1.6rem);
+        font-weight: 700;
+        opacity: 0.95;
+      }
+
+      canvas#fx {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      .hint {
+        margin-top: 10px;
+        font-size: 0.92rem;
+        opacity: 0.7;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1 class="title" id="mainTitle">Shall you be my valentine Tanvi? 💘</h1>
+
+      <div class="card">
+        <p class="sub">Choose wisely</p>
+
+        <div class="arena" id="arena">
+          <button id="yesBtn">Yes</button>
+          <button id="noBtn">No</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modalBackdrop" id="modalBackdrop">
+      <div class="modal">
+        <h2>Hollup</h2>
+        <p id="modalMsg">Surely you reconsider</p>
+        <div class="modalBtns">
+          <button class="ghost" id="modalNopeBtn">Still no (I suck)</button>
+          <button id="modalYesBtn">I have come to my senses (yes)</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="celebrate" id="celebrate">
+      <canvas id="fx"></canvas>
+      <div class="celebrateText">
+        <div>
+          <div class="big">LETS GOOOO (see u in a week)</div>
+          <div class="small">(Also lets go pats tmrw)</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const BACKGROUND_IMAGE_URL = "background.jpg";
+      const TITLE_TEXT = "Will you be my Valentine, Tanvi? 💘";
+
+      const NO_POPUP_LINES = ["Are you sure?"];
+
+      const NO_TELEPORT_EVERY_MS = 2000;
+
+      document.body.style.background = `linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.25)), url("${BACKGROUND_IMAGE_URL}") center/cover no-repeat fixed`;
+      document.getElementById("mainTitle").textContent = TITLE_TEXT;
+
+      const arena = document.getElementById("arena");
+      const noBtn = document.getElementById("noBtn");
+      const yesBtn = document.getElementById("yesBtn");
+      const modalBackdrop = document.getElementById("modalBackdrop");
+      const modalMsg = document.getElementById("modalMsg");
+      const modalNopeBtn = document.getElementById("modalNopeBtn");
+      const modalYesBtn = document.getElementById("modalYesBtn");
+      const celebrate = document.getElementById("celebrate");
+      const canvas = document.getElementById("fx");
+      const ctx = canvas.getContext("2d");
+
+      let popupIndex = 0;
+      let arenaRect = null;
+
+      function refreshRects() {
+        arenaRect = arena.getBoundingClientRect();
+        canvas.width = Math.floor(window.innerWidth * devicePixelRatio);
+        canvas.height = Math.floor(window.innerHeight * devicePixelRatio);
+        ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      }
+
+      function moveNoButtonRandom() {
+        refreshRects();
+        const btnRect = noBtn.getBoundingClientRect();
+        const btnW = btnRect.width;
+        const btnH = btnRect.height;
+
+        const x = Math.random() * (arenaRect.width - btnW - 20) + 10;
+        const y = Math.random() * (arenaRect.height - btnH - 20) + 10;
+
+        noBtn.style.left = `${x}px`;
+        noBtn.style.top = `${y}px`;
+      }
+
+      arena.addEventListener("mousemove", (e) => {
+        const btn = noBtn.getBoundingClientRect();
+        const dist = Math.hypot(
+          btn.left + btn.width / 2 - e.clientX,
+          btn.top + btn.height / 2 - e.clientY,
+        );
+        if (dist < 130) moveNoButtonRandom();
+      });
+
+      noBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const msg = NO_POPUP_LINES[popupIndex % NO_POPUP_LINES.length];
+        popupIndex++;
+        modalMsg.textContent = msg;
+        modalBackdrop.style.display = "grid";
+      });
+
+      modalNopeBtn.addEventListener("click", () => {
+        modalBackdrop.style.display = "none";
+        moveNoButtonRandom();
+      });
+
+      modalYesBtn.addEventListener("click", () => {
+        modalBackdrop.style.display = "none";
+        doYesCelebration();
+      });
+
+      yesBtn.addEventListener("click", () => doYesCelebration());
+
+      setInterval(moveNoButtonRandom, NO_TELEPORT_EVERY_MS);
+
+      const particles = [];
+      let animating = false;
+      let stopAt = 0;
+
+      function burst() {
+        const count = 90;
+        const cx =
+          Math.random() * window.innerWidth * 0.8 + window.innerWidth * 0.1;
+        const cy =
+          Math.random() * window.innerHeight * 0.5 + window.innerHeight * 0.15;
+
+        for (let i = 0; i < count; i++) {
+          const a = Math.random() * Math.PI * 2;
+          const s = Math.random() * 6 + 2;
+          particles.push({
+            x: cx,
+            y: cy,
+            vx: Math.cos(a) * s,
+            vy: Math.sin(a) * s,
+            life: Math.random() * 50 + 40,
+            r: Math.random() * 3 + 1.5,
+          });
+        }
+      }
+
+      function step() {
+        if (!animating) return;
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+        if (Date.now() < stopAt && Math.random() < 0.18) burst();
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vy += 0.06;
+          p.vx *= 0.99;
+          p.vy *= 0.99;
+          p.life--;
+
+          ctx.globalAlpha = Math.max(p.life / 80, 0);
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+          ctx.fillStyle = "white";
+          ctx.fill();
+
+          if (p.life <= 0) particles.splice(i, 1);
+        }
+
+        ctx.globalAlpha = 1;
+
+        if (Date.now() >= stopAt && particles.length === 0) {
+          animating = false;
+        } else {
+          requestAnimationFrame(step);
+        }
+      }
+
+      function doYesCelebration() {
+        yesBtn.disabled = true;
+        noBtn.style.display = "none";
+        celebrate.style.display = "block";
+        refreshRects();
+        particles.length = 0;
+        stopAt = Date.now() + 3500;
+        animating = true;
+        burst();
+        burst();
+        burst();
         requestAnimationFrame(step);
       }
-    }
 
-    function doYesCelebration() {
-      yesBtn.disabled = true;
-      noBtn.style.display = "none";
-      celebrate.style.display = "block";
+      window.addEventListener("resize", refreshRects);
       refreshRects();
-      particles.length = 0;
-      stopAt = Date.now() + 3500;
-      animating = true;
-      burst(); burst(); burst();
-      requestAnimationFrame(step);
-    }
-
-    window.addEventListener("resize", refreshRects);
-    refreshRects();
-    moveNoButtonRandom();
-  </script>
-</body>
+      moveNoButtonRandom();
+    </script>
+  </body>
 </html>
