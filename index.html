@@ -103,8 +103,8 @@
         background: #ef4444;
         color: white;
         transition:
-          left 0.15s ease,
-          top 0.15s ease;
+          left 0.12s ease,
+          top 0.12s ease;
       }
 
       .modalBackdrop {
@@ -226,9 +226,34 @@
       const BACKGROUND_IMAGE_URL = "background.jpg";
       const TITLE_TEXT = "Will you be my Valentine, Tanvi? 💘";
 
-      const NO_POPUP_LINES = ["Are you sure?"];
+      // Escalating messages — cycles through in order, gets increasingly desperate
+      const NO_POPUP_LINES = [
+        "Are you sure? 🥺",
+        "Bro... really??",
+        "I will literally cry rn",
+        "Okay but what if you said yes though",
+        "This is your LAST chance bestie",
+        "I'm not mad, I'm just disappointed",
+        "The button keeps moving for a reason you know",
+        "Fine. I'll just sit here. Alone. In the dark.",
+        "ARE YOU KIDDING ME RIGHT NOW",
+        "okay you know what. yes means yes. press yes.",
+      ];
+
+      // Confetti colors — pink/red/gold/white for Valentine's vibes
+      const CONFETTI_COLORS = [
+        "#ff6b9d", // pink
+        "#ff3366", // red-pink
+        "#ff9f43", // gold
+        "#ffd700", // yellow
+        "#ff85a1", // light pink
+        "#ffffff", // white
+        "#ffb3c6", // baby pink
+      ];
 
       const NO_TELEPORT_EVERY_MS = 2000;
+      // How much faster the No button gets each rejection (multiplier)
+      const SPEED_ESCALATION = 0.85;
 
       document.body.style.background = `linear-gradient(rgba(0,0,0,.25), rgba(0,0,0,.25)), url("${BACKGROUND_IMAGE_URL}") center/cover no-repeat fixed`;
       document.getElementById("mainTitle").textContent = TITLE_TEXT;
@@ -246,6 +271,7 @@
 
       let popupIndex = 0;
       let arenaRect = null;
+      let teleportInterval = null;
 
       function refreshRects() {
         arenaRect = arena.getBoundingClientRect();
@@ -267,6 +293,16 @@
         noBtn.style.top = `${y}px`;
       }
 
+      function escalateSpeed() {
+        // Make No button move faster after each rejection
+        const currentMs = parseInt(teleportInterval._delay || NO_TELEPORT_EVERY_MS);
+        const newMs = Math.max(300, Math.floor(currentMs * SPEED_ESCALATION));
+        clearInterval(teleportInterval);
+        teleportInterval = setInterval(moveNoButtonRandom, newMs);
+        teleportInterval._delay = newMs;
+      }
+
+      // Mouse dodge
       arena.addEventListener("mousemove", (e) => {
         const btn = noBtn.getBoundingClientRect();
         const dist = Math.hypot(
@@ -276,12 +312,27 @@
         if (dist < 130) moveNoButtonRandom();
       });
 
+      // Touch dodge — move when user taps near No button
+      arena.addEventListener("touchstart", (e) => {
+        const touch = e.touches[0];
+        const btn = noBtn.getBoundingClientRect();
+        const dist = Math.hypot(
+          btn.left + btn.width / 2 - touch.clientX,
+          btn.top + btn.height / 2 - touch.clientY,
+        );
+        if (dist < 160) {
+          e.preventDefault();
+          moveNoButtonRandom();
+        }
+      }, { passive: false });
+
       noBtn.addEventListener("click", (e) => {
         e.preventDefault();
         const msg = NO_POPUP_LINES[popupIndex % NO_POPUP_LINES.length];
         popupIndex++;
         modalMsg.textContent = msg;
         modalBackdrop.style.display = "grid";
+        escalateSpeed();
       });
 
       modalNopeBtn.addEventListener("click", () => {
@@ -296,7 +347,10 @@
 
       yesBtn.addEventListener("click", () => doYesCelebration());
 
-      setInterval(moveNoButtonRandom, NO_TELEPORT_EVERY_MS);
+      teleportInterval = setInterval(moveNoButtonRandom, NO_TELEPORT_EVERY_MS);
+      teleportInterval._delay = NO_TELEPORT_EVERY_MS;
+
+      // ── Particle system ──────────────────────────────────────────────────
 
       const particles = [];
       let animating = false;
@@ -319,6 +373,7 @@
             vy: Math.sin(a) * s,
             life: Math.random() * 50 + 40,
             r: Math.random() * 3 + 1.5,
+            color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
           });
         }
       }
@@ -341,7 +396,7 @@
           ctx.globalAlpha = Math.max(p.life / 80, 0);
           ctx.beginPath();
           ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-          ctx.fillStyle = "white";
+          ctx.fillStyle = p.color;
           ctx.fill();
 
           if (p.life <= 0) particles.splice(i, 1);
@@ -359,6 +414,7 @@
       function doYesCelebration() {
         yesBtn.disabled = true;
         noBtn.style.display = "none";
+        clearInterval(teleportInterval);
         celebrate.style.display = "block";
         refreshRects();
         particles.length = 0;
@@ -368,6 +424,9 @@
         burst();
         burst();
         requestAnimationFrame(step);
+
+        // Haptic feedback on mobile
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100, 50, 200]);
       }
 
       window.addEventListener("resize", refreshRects);
